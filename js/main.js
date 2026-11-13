@@ -29,7 +29,7 @@
   if (tog) tog.addEventListener('click', function () { setMenu(!document.body.classList.contains('menu-open')); });
   $$('#nav a').forEach(function (a) { a.addEventListener('click', function () { setMenu(false); }); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setMenu(false); });
-  window.addEventListener('resize', function () { if (window.innerWidth > 1100) setMenu(false); });
+  window.addEventListener('resize', function () { if (window.innerWidth > 1280) setMenu(false); });
 
   /* ---------- Hero headline: word-by-word entrance ---------- */
   $$('[data-split]').forEach(function (h) {
@@ -59,6 +59,30 @@
     revealEls.forEach(function (el) { io.observe(el); });
   } else {
     revealEls.forEach(function (el) { el.classList.add('in'); });
+  }
+
+  /* ---------- Hero slideshow ---------- */
+  var sl = $('.slides');
+  if (sl) {
+    var slides = $$('.slide', sl), pager = $('.pager'), cur = 0, timer = null;
+    slides.forEach(function (s, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('aria-label', 'Show photo ' + (i + 1) + ' of ' + slides.length);
+      if (i === 0) b.setAttribute('aria-current', 'true');
+      b.addEventListener('click', function () { go(i); stop(); start(); });
+      pager.appendChild(b);
+    });
+    var dots = $$('button', pager);
+    var go = function (n) {
+      slides[cur].classList.remove('on'); dots[cur].removeAttribute('aria-current');
+      cur = (n + slides.length) % slides.length;
+      slides[cur].classList.add('on'); dots[cur].setAttribute('aria-current', 'true');
+    };
+    var start = function () { if (!reduce && !timer && slides.length > 1) timer = setInterval(function () { go(cur + 1); }, 6500); };
+    var stop = function () { clearInterval(timer); timer = null; };
+    document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); else start(); });
+    start();
   }
 
   /* ---------- Footer year ---------- */
@@ -217,6 +241,8 @@
   /* ---------- Forms: validation + WhatsApp ---------- */
   function fieldMsg(inp, form) {
     var v = (inp.value || '').trim(), n = inp.name;
+    /* Day visits have no overnight stay, so check-out is optional */
+    if (n === 'checkout' && form.elements.room && form.elements.room.value === 'Day Visit') return '';
     if (inp.dataset.req && !v) return inp.dataset.req;
     if (!v) return '';
     if (inp.dataset.type === 'phone' && !/^\+?[0-9\s\-()]{9,17}$/.test(v)) return 'Please enter a valid phone number, for example 0712 345 678.';
@@ -247,6 +273,9 @@
     inputs.forEach(function (inp) {
       var re = function () { if (inp.closest('.field').classList.contains('invalid')) setErr(inp, fieldMsg(inp, form)); };
       inp.addEventListener('input', re); inp.addEventListener('change', re);
+      if (inp.name === 'room') inp.addEventListener('change', function () {
+        var c = form.elements.checkout; if (c) setErr(c, fieldMsg(c, form));
+      });
       inp.addEventListener('blur', function () { if (inp.value.trim()) setErr(inp, fieldMsg(inp, form)); });
     });
 
